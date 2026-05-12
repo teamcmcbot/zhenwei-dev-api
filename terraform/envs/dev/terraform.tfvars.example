@@ -1,0 +1,32 @@
+aws_region          = "ap-southeast-1"
+private_bucket_name = "example-private-bucket"
+
+# CORS origins for browser calls
+allowed_origins = [
+  "https://example.com",
+  "https://www.example.com"
+]
+
+# Keep this narrow; exact key list is preferred for high-sensitivity files.
+allowed_object_keys = [
+  "docs/sample-file.pdf"
+]
+
+allowed_object_prefixes = [
+  "resume/"
+]
+
+# Optional custom domain wiring
+enable_custom_domain        = false
+create_api_domain_certificate = false
+api_domain_name             = "api-dev.example.com"
+api_domain_certificate_arn  = ""
+hosted_zone_name            = "example.com."
+
+# Shared stack state lookup
+state_bucket_name   = "example-terraform-tfstate"
+state_bucket_region = "ap-southeast-1"
+shared_state_key    = "example-api/shared/terraform.tfstate"
+
+# Optional alarm notifications
+alarm_sns_topic_arn = ""

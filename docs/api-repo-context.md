@@ -93,7 +93,7 @@ Step Functions is preferred long-term because it avoids paying for Lambda idle w
 
 ```text
 zhenwei-dev-api/
-  infra/
+  terraform/
     modules/
       lambda_service/
       http_api/
@@ -183,10 +183,17 @@ Environment model:
 
 State model:
 
-- Use separate Terraform state per environment.
+- Use separate Terraform state per stack.
 - Example state keys:
+  - `zhenwei-dev-api/shared/terraform.tfstate`
   - `zhenwei-dev-api/dev/terraform.tfstate`
   - `zhenwei-dev-api/prod/terraform.tfstate`
+
+Ownership model:
+
+- `terraform/envs/shared` owns shared resources (artifact bucket and optional shared deploy role).
+- `terraform/envs/dev` and `terraform/envs/prod` own environment resources and consume shared outputs via remote state.
+- Service artifact SSM parameters remain environment-specific.
 
 ## Lambda Development Model
 
@@ -244,7 +251,7 @@ Responsibilities:
 
 - Package changed Lambda services.
 - Upload artifacts to S3 artifact bucket.
-- Run Terraform apply for `infra/envs/dev`.
+- Run Terraform apply for `terraform/envs/dev`.
 - Run smoke tests.
 - Optionally call `send-notification`.
 

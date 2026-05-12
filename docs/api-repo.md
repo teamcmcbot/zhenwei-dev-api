@@ -16,12 +16,16 @@ Primary goals:
 
 ```text
 zhenwei-dev-api/
-  infra/
+  terraform/
     modules/
       lambda_service/
       http_api/
       notification_channel/
     envs/
+      shared/
+        main.tf
+        variables.tf
+        terraform.tfvars
       dev/
         main.tf
         variables.tf
@@ -61,7 +65,7 @@ zhenwei-dev-api/
 
 Design principle:
 - services/: Lambda code and tests
-- infra/: Terraform only (no business logic code)
+- terraform/: Terraform only (no business logic code)
 - CI builds artifacts first, then Terraform deploys those artifacts
 
 ## API 1: get-presigned-url
@@ -204,8 +208,9 @@ Core resources likely needed:
 - ACM certificates (regional for API Gateway custom domain)
 
 State strategy:
-- Separate state per environment
-- infra/envs/dev and infra/envs/prod each with isolated backend key
+- Separate state per stack
+- terraform/envs/shared, terraform/envs/dev, and terraform/envs/prod each have isolated backend keys
+- Shared stack owns global resources, env stacks consume shared outputs via remote state
 
 ## CI/CD Pipeline Plan
 

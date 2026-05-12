@@ -1,0 +1,26 @@
+aws_region          = "ap-southeast-1"
+private_bucket_name = "example-private-bucket"
+allowed_origins = [
+  "https://example.com",
+  "https://www.example.com"
+]
+
+allowed_object_keys = [
+  "docs/sample-file.pdf"
+]
+
+allowed_object_prefixes = [
+  "resume/"
+]
+
+enable_custom_domain       = true
+create_api_domain_certificate = true
+api_domain_name            = "api.example.com"
+api_domain_certificate_arn = ""
+hosted_zone_name           = "example.com."
+
+state_bucket_name   = "example-terraform-tfstate"
+state_bucket_region = "ap-southeast-1"
+shared_state_key    = "example-api/shared/terraform.tfstate"
+
+alarm_sns_topic_arn = ""

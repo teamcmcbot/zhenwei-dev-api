@@ -138,7 +138,7 @@ Validation rules:
 
 ## Terraform Configuration
 
-Terraform should live under `infra/modules/` and `infra/envs/<env>/`.
+Terraform should live under `terraform/modules/` and `terraform/envs/<env>/`.
 
 Terraform should own the Lambda function, API Gateway wiring, IAM, logs, and the SSM parameter resources used to track deployable Lambda artifacts. The package/upload step should update the SSM parameter value; Terraform should read that value during plan/apply.
 
@@ -279,8 +279,8 @@ This repository can start with local Terraform applies, similar to `zhenwei-dev-
 3. Upload the zip to the artifact S3 bucket with an immutable key, for example `lambdas/get-presigned-url/<build-id>.zip`.
 4. Calculate the base64 SHA-256 hash of the zip.
 5. Update `/zhenwei-dev-api/dev/get-presigned-url/artifact` in SSM with bucket, key, hash, and build metadata.
-6. Run `terraform plan` from `infra/envs/dev`.
-7. Run `terraform apply` from `infra/envs/dev`.
+6. Run `terraform plan` from `terraform/envs/dev`.
+7. Run `terraform apply` from `terraform/envs/dev`.
 8. Terraform reads the SSM parameter and updates `aws_lambda_function` to the referenced artifact.
 9. Run a smoke test against `https://api-dev.zhenwei.dev/get-presigned-url`.
 
@@ -414,7 +414,7 @@ Integration tests in dev:
 5. Add local package script that builds an immutable Lambda zip from service code plus `shared/python`.
 6. Add local upload script that uploads the zip to the artifact bucket and updates the dev SSM artifact parameter.
 7. Add Terraform for the artifact SSM parameter, Lambda, IAM, route, logs, CORS config, and dev custom domain wiring.
-8. Run local `terraform plan` and `terraform apply` for `infra/envs/dev`.
+8. Run local `terraform plan` and `terraform apply` for `terraform/envs/dev`.
 9. Add API Gateway rate limits and CloudWatch alarms for the public route.
 10. Run dev smoke tests against `https://api-dev.zhenwei.dev/get-presigned-url`.
 11. Integrate the CV download flow in `zhenwei-dev-site`.
@@ -430,7 +430,7 @@ The service design is ready to implement locally once these values are confirmed
 | Private bucket name | Confirm whether `zhenwei-private-bucket` is the final bucket name for dev and prod. |
 | Initial object allow-list | Confirm exact keys or prefixes, for example `resume/zhenwei-seo-cv.pdf` or `resume/`. |
 | Artifact bucket | Confirm whether this repo creates a new artifact bucket or reuses an existing deployment artifact bucket. |
-| Terraform backend | Confirm where `infra/envs/dev` and `infra/envs/prod` state will live. |
+| Terraform backend | Confirm `shared`, `dev`, and `prod` backend keys and shared-state lookup settings. |
 | Lambda runtime | Confirm the AWS-supported Python runtime to use in the target region. |
 | API domain ownership | Confirm Route53 hosted zone and ACM certificate strategy for `api-dev.zhenwei.dev` and `api.zhenwei.dev`. |
 | CORS origins | Confirm dev and prod frontend origins. |

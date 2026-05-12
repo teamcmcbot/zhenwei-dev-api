@@ -116,13 +116,18 @@ Planned structure:
 
 ```text
 zhenwei-dev-api/
-  infra/
+  terraform/
     modules/
       http_api/
       lambda_service/
       notification_channel/
       step_function/
     envs/
+      shared/
+        main.tf
+        variables.tf
+        outputs.tf
+        terraform.tfvars.example
       dev/
         main.tf
         variables.tf
@@ -183,9 +188,10 @@ Layout principles:
 
 - `services/` contains Lambda application code and tests.
 - `shared/` contains reusable Python utilities shared by services.
-- `infra/` contains Terraform only.
-- `infra/modules/` contains reusable infrastructure modules.
-- `infra/envs/dev` and `infra/envs/prod` contain environment-specific composition and variables.
+- `terraform/` contains Terraform only.
+- `terraform/modules/` contains reusable infrastructure modules.
+- `terraform/envs/shared` owns shared resources consumed by env stacks.
+- `terraform/envs/dev` and `terraform/envs/prod` contain environment-specific composition and variables.
 - `.github/workflows/` contains active GitHub Actions workflow definitions. GitHub workflow files cannot be activated from service subdirectories.
 
 ## Terraform Model
@@ -205,10 +211,17 @@ Expected Terraform responsibilities:
 - Optional Step Functions for invalidation tracking.
 - Optional artifact bucket for Lambda zip packages.
 
-State should be separated per environment. Example backend keys:
+State should be separated by stack. Example backend keys:
 
+- `zhenwei-dev-api/shared/terraform.tfstate`
 - `zhenwei-dev-api/dev/terraform.tfstate`
 - `zhenwei-dev-api/prod/terraform.tfstate`
+
+Ownership model:
+
+- `shared` owns shared resources such as artifact bucket and optional shared GitHub deploy role.
+- `dev` and `prod` own environment resources and consume shared outputs via remote state.
+- `dev` and `prod` each manage their own service artifact SSM parameter paths.
 
 Environment-specific values should live in Terraform variables or external secret/config stores, not hard-coded in modules.
 
@@ -227,15 +240,16 @@ Each service should be developed and tested independently:
 
 ## Bootstrap Sequence (Local First)
 
-To avoid a chicken-and-egg cycle, bootstrap infrastructure in two passes:
+To avoid a chicken-and-egg cycle, bootstrap infrastructure in three stacks:
 
-1. Apply bootstrap Terraform for shared primitives only (artifact S3 bucket, SSM parameter names, and IAM roles/policies).
-2. Implement service code and package scripts.
-3. Build and upload Lambda zip artifacts to the artifact bucket.
-4. Update each service SSM artifact parameter with the uploaded artifact metadata.
-5. Apply service Terraform (Lambda, API Gateway routes/integrations/stages, domain/DNS, alarms).
-6. Run smoke tests from curl/Postman and site integration tests.
-7. Add GitHub workflows to automate steps 3 through 6.
+1. Apply `terraform/envs/shared` first to create shared primitives (artifact bucket and optional shared deploy role).
+2. Apply `terraform/envs/dev` and `terraform/envs/prod` to create environment-specific SSM artifact parameters and API resources.
+3. Implement service code and package scripts.
+4. Build and upload Lambda zip artifacts to the shared artifact bucket.
+5. Update each environment service artifact SSM parameter with uploaded artifact metadata.
+6. Re-apply `terraform/envs/dev` or `terraform/envs/prod` to deploy the referenced artifact.
+7. Run smoke tests from curl/Postman and site integration tests.
+8. Add GitHub workflows to automate steps 4 through 7.
 
 ## CI/CD Plan
 
@@ -260,7 +274,7 @@ Responsibilities:
 
 - Package changed Lambda services.
 - Upload artifacts to the artifact bucket.
-- Run Terraform apply for `infra/envs/dev`.
+- Run Terraform apply for `terraform/envs/dev`.
 - Run smoke tests against `api-dev.zhenwei.dev`.
 - Send deployment notifications through the internal notification path.
 
@@ -271,7 +285,7 @@ Runs manually from `main` with a protected GitHub Environment approval.
 Responsibilities:
 
 - Deploy the approved artifact versions to prod.
-- Run Terraform apply for `infra/envs/prod`.
+- Run Terraform apply for `terraform/envs/prod`.
 - Run smoke tests against `api.zhenwei.dev`.
 - Send success or failure notifications.
 
@@ -294,12 +308,13 @@ VITE_CV_API_URL=https://api-dev.zhenwei.dev/get-presigned-url
 
 1. Scaffold the repository structure.
 2. Implement `get-presigned-url` for dev.
-3. Add bootstrap Terraform for artifact bucket, SSM parameter names, and IAM roles.
-4. Add CI tests and Lambda artifact packaging.
-5. Deploy the dev endpoint and integrate the site CV download flow.
-6. Implement `send-notification` with secure secret retrieval and internal access control.
-7. Implement `update-invalidation-status` with bounded polling.
-8. Migrate invalidation tracking to Step Functions if the workflow becomes long-running or needs richer orchestration.
+3. Add shared-stack Terraform for artifact bucket and optional shared IAM roles.
+4. Add env-stack Terraform for environment SSM parameter names and API resources.
+5. Add CI tests and Lambda artifact packaging.
+6. Deploy the dev endpoint and integrate the site CV download flow.
+7. Implement `send-notification` with secure secret retrieval and internal access control.
+8. Implement `update-invalidation-status` with bounded polling.
+9. Migrate invalidation tracking to Step Functions if the workflow becomes long-running or needs richer orchestration.
 
 ## Related Docs
 

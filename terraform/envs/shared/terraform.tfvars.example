@@ -1,0 +1,10 @@
+aws_region = "ap-southeast-1"
+
+artifact_bucket_name      = "example-api-artifacts"
+create_artifact_bucket    = true
+create_github_deploy_role = true
+
+github_repo              = "your-org/example-api"
+github_allowed_branches  = ["dev", "main"]
+github_deploy_environments = ["dev", "prod"]
+artifact_prefix          = "lambdas/get-presigned-url/"
