@@ -298,7 +298,7 @@ The site repo should remain frontend/static-hosting focused.
 
 The API repo should expose environment-specific API URLs:
 
-- `https://api-dev.zhenwei.dev`
+- `https://<dev-execute-api-id>.execute-api.ap-southeast-1.amazonaws.com` (default dev setup)
 - `https://api.zhenwei.dev`
 
 The site can consume these through Vite environment variables:
@@ -306,7 +306,7 @@ The site can consume these through Vite environment variables:
 ```bash
 VITE_APP_ENV=dev
 VITE_CV_MODE=api
-VITE_CV_API_URL=https://api-dev.zhenwei.dev/get-presigned-url
+VITE_CV_API_URL=https://<dev-execute-api-id>.execute-api.ap-southeast-1.amazonaws.com/get-presigned-url
 ```
 
 For local site development, the site can use a static fallback:

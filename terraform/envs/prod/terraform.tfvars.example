@@ -5,12 +5,10 @@ allowed_origins = [
   "https://www.example.com"
 ]
 
-allowed_object_keys = [
-  "docs/sample-file.pdf"
-]
+allowed_object_keys = []
 
 allowed_object_prefixes = [
-  "resume/"
+  "private-downloads/"
 ]
 
 enable_custom_domain       = true

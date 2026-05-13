@@ -20,7 +20,7 @@ Use `POST` because the request includes object details and optional signing opti
 
 ```json
 {
-  "objectKey": "resume/zhenwei-seo-cv.pdf",
+  "objectKey": "private-downloads/resume/zhenwei-seo-cv.pdf",
   "versionId": "3HL4kqtJlcpXroDTDmJ+rmSpXd3dIbrH",
   "expiresInSeconds": 300,
   "contentDispositionFileName": "zhenwei-seo-cv.pdf"
@@ -47,7 +47,7 @@ Example CV request:
 
 ```json
 {
-  "objectKey": "resume/zhenwei-seo-cv.pdf",
+  "objectKey": "private-downloads/resume/zhenwei-seo-cv.pdf",
   "expiresInSeconds": 300,
   "contentDispositionFileName": "zhenwei-seo-cv.pdf"
 }
@@ -57,7 +57,7 @@ Example request for a specific object version:
 
 ```json
 {
-  "objectKey": "resume/zhenwei-seo-cv.pdf",
+  "objectKey": "private-downloads/resume/zhenwei-seo-cv.pdf",
   "versionId": "3HL4kqtJlcpXroDTDmJ+rmSpXd3dIbrH"
 }
 ```
@@ -70,7 +70,7 @@ Successful response:
 {
   "url": "https://zhenwei-private-bucket.s3...",
   "bucketName": "zhenwei-private-bucket",
-  "objectKey": "resume/zhenwei-seo-cv.pdf",
+  "objectKey": "private-downloads/resume/zhenwei-seo-cv.pdf",
   "versionId": "3HL4kqtJlcpXroDTDmJ+rmSpXd3dIbrH",
   "fileName": "zhenwei-seo-cv.pdf",
   "expiresIn": 300
@@ -95,7 +95,7 @@ Use generic error messages for public callers. Do not reveal bucket names, objec
 
 ## Lambda Logic
 
-Recommended runtime: the latest Python runtime supported by AWS Lambda at implementation time. Use Python 3.12 or 3.13 if Python 3.14 is not yet available in Lambda for the target AWS region.
+Recommended runtime: Python 3.14 (matches the current deployed Lambda runtime in this repository).
 
 Handler steps:
 
@@ -118,8 +118,8 @@ Suggested environment variables:
 | `APP_ENV` | `dev` | Environment name. |
 | `LOG_LEVEL` | `INFO` | Runtime log level. |
 | `PRIVATE_BUCKET_NAME` | `zhenwei-private-bucket` | Approved private bucket name. |
-| `ALLOWED_OBJECT_KEYS` | `resume/zhenwei-seo-cv.pdf` | Comma-separated exact object keys allowed for signing. |
-| `ALLOWED_OBJECT_PREFIXES` | `public-downloads/,resume/` | Comma-separated prefixes allowed for signing. Keep this narrow. |
+| `ALLOWED_OBJECT_KEYS` | `(empty)` | Comma-separated exact object keys allowed for signing. Empty means rely on prefix allow-list only. |
+| `ALLOWED_OBJECT_PREFIXES` | `private-downloads/` | Comma-separated prefixes allowed for signing. Keep this narrow. |
 | `DEFAULT_PRESIGNED_URL_EXPIRES_SECONDS` | `300` | Default URL expiry. |
 | `MAX_PRESIGNED_URL_EXPIRES_SECONDS` | `900` | Hard maximum URL expiry. |
 | `ALLOWED_ORIGINS` | `https://zhenwei.dev,https://www.zhenwei.dev` | CORS allow-list. |
@@ -242,8 +242,7 @@ IAM policy scope:
   "Action": "s3:GetObject",
   "Effect": "Allow",
   "Resource": [
-    "arn:aws:s3:::zhenwei-private-bucket/resume/*",
-    "arn:aws:s3:::zhenwei-private-bucket/public-downloads/*"
+    "arn:aws:s3:::zhenwei-private-bucket/private-downloads/*"
   ]
 }
 ```
@@ -282,7 +281,7 @@ This repository can start with local Terraform applies, similar to `zhenwei-dev-
 6. Run `terraform plan` from `terraform/envs/dev`.
 7. Run `terraform apply` from `terraform/envs/dev`.
 8. Terraform reads the SSM parameter and updates `aws_lambda_function` to the referenced artifact.
-9. Run a smoke test against `https://api-dev.zhenwei.dev/get-presigned-url`.
+9. Run a smoke test against the dev execute-api endpoint output from Terraform (`get_presigned_url_api_endpoint/get-presigned-url`).
 
 ### GitHub Actions Sequence
 
@@ -416,7 +415,7 @@ Integration tests in dev:
 7. Add Terraform for the artifact SSM parameter, Lambda, IAM, route, logs, CORS config, and dev custom domain wiring.
 8. Run local `terraform plan` and `terraform apply` for `terraform/envs/dev`.
 9. Add API Gateway rate limits and CloudWatch alarms for the public route.
-10. Run dev smoke tests against `https://api-dev.zhenwei.dev/get-presigned-url`.
+10. Run dev smoke tests against the dev execute-api endpoint output from Terraform.
 11. Integrate the CV download flow in `zhenwei-dev-site`.
 12. Add GitHub Actions packaging and Terraform deployment after the local flow is proven.
 13. Promote to prod with an explicitly approved artifact after dev smoke testing.
@@ -428,7 +427,7 @@ The service design is ready to implement locally once these values are confirmed
 | Decision | Needed value |
 | --- | --- |
 | Private bucket name | Confirm whether `zhenwei-private-bucket` is the final bucket name for dev and prod. |
-| Initial object allow-list | Confirm exact keys or prefixes, for example `resume/zhenwei-seo-cv.pdf` or `resume/`. |
+| Initial object allow-list | Confirm exact keys or prefixes, for example `private-downloads/resume/zhenwei-seo-cv.pdf` or `private-downloads/`. |
 | Artifact bucket | Confirm whether this repo creates a new artifact bucket or reuses an existing deployment artifact bucket. |
 | Terraform backend | Confirm `shared`, `dev`, and `prod` backend keys and shared-state lookup settings. |
 | Lambda runtime | Confirm the AWS-supported Python runtime to use in the target region. |

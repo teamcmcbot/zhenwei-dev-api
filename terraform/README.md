@@ -15,8 +15,7 @@ The current shared module provisions the common artifact bucket and, optionally,
 ## Region Rules
 
 - All stacks run in `ap-southeast-1`.
-- ACM certificates for API Gateway custom domains must be created in `us-east-1`.
-- The `us_east_1` provider alias is defined in each stack for that purpose only.
+- API Gateway HTTP API custom domains require a regional ACM certificate in the same AWS region as the API (`ap-southeast-1` in this repo).
 
 ## Tagging Rules
 
@@ -67,7 +66,7 @@ This matrix shows where each toggle is intended to be turned on or off.
 | `create_artifact_parameter` | `false` | `true` | `true` | Dev/prod each own their own artifact pointer parameter. |
 | `create_github_deploy_role` | `true` | `false` | `false` | Shared owns CI deploy identity once. |
 | `enable_custom_domain` | n/a | `false` | `true` | Dev usually uses execute-api URL; prod uses custom domain. |
-| `create_api_domain_certificate` | n/a | `false` | `false` or `true` | Set `true` only if Terraform should create ACM in `us-east-1`. |
+| `create_api_domain_certificate` | n/a | `false` | `false` or `true` | Set `true` only if Terraform should create the regional ACM certificate in the API region (`ap-southeast-1`). |
 
 Notes:
 
@@ -84,6 +83,8 @@ Notes:
 - Prod sets it to `true` because public stable hostname routing is needed there.
 
 If you want dev to use `api-dev.<domain>` as well, set `enable_custom_domain = true` in `envs/dev/terraform.tfvars` and provide the required hosted zone and certificate inputs.
+
+For this HTTP API setup, that certificate must be regional in `ap-southeast-1`.
 
 ## Apply Sequence
 

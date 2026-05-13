@@ -4,9 +4,9 @@
 
 The main website repository, `zhenwei-dev-site`, owns the React/Vite frontend and the static hosting infrastructure such as S3, CloudFront, Route53, and ACM. This repository owns API Gateway, Lambda services, API-specific IAM, observability, and CI/CD workflows for reusable backend capabilities that support the site and future automation workflows.
 
-The first production domain target is:
+API endpoint targets:
 
-- Dev: `https://api-dev.zhenwei.dev`
+- Dev: execute-api endpoint by default (custom domain optional: `https://api-dev.zhenwei.dev`)
 - Prod: `https://api.zhenwei.dev`
 
 ## Goals
@@ -26,7 +26,7 @@ The first production domain target is:
 
 Generates a short-lived S3 presigned URL for approved private files.
 
-Initial use case: the portfolio site's CV download flow should call this API instead of serving the PDF directly from the frontend repository. The CV PDF remains in the private S3 bucket that is provisioned outside this repo, currently planned as `zhenwei-private-bucket`. The endpoint should also remain reusable for future private files in approved object paths.
+Initial use case: the portfolio site's CV download flow should call this API instead of serving the PDF directly from the frontend repository. The CV PDF remains in the private S3 bucket that is provisioned outside this repo, currently planned as `zhenwei-private-bucket`. The endpoint stays reusable for future private files by using an approved namespace such as `private-downloads/` rather than a resume-specific bucket path.
 
 Expected flow:
 
@@ -275,7 +275,7 @@ Responsibilities:
 - Package changed Lambda services.
 - Upload artifacts to the artifact bucket.
 - Run Terraform apply for `terraform/envs/dev`.
-- Run smoke tests against `api-dev.zhenwei.dev`.
+- Run smoke tests against the dev execute-api endpoint (or `api-dev.zhenwei.dev` if custom domain is enabled).
 - Send deployment notifications through the internal notification path.
 
 ### `deploy-prod.yml`
@@ -293,7 +293,7 @@ Responsibilities:
 
 | Environment | Domain | Deployment trigger | Purpose |
 | --- | --- | --- | --- |
-| `dev` | `api-dev.zhenwei.dev` | Push to `dev` or manual dispatch | Integration testing and site development. |
+| `dev` | execute-api endpoint by default (`api-dev.zhenwei.dev` optional) | Push to `dev` or manual dispatch | Integration testing and site development. |
 | `prod` | `api.zhenwei.dev` | Manual workflow from `main` with approval | Production portfolio and automation APIs. |
 
 The portfolio site can point to different API URLs with environment variables, for example:
@@ -301,7 +301,7 @@ The portfolio site can point to different API URLs with environment variables, f
 ```bash
 VITE_APP_ENV=dev
 VITE_CV_MODE=api
-VITE_CV_API_URL=https://api-dev.zhenwei.dev/get-presigned-url
+VITE_CV_API_URL=https://<dev-execute-api-id>.execute-api.ap-southeast-1.amazonaws.com/get-presigned-url
 ```
 
 ## Delivery Phases

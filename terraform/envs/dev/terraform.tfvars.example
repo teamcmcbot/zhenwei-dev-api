@@ -7,13 +7,11 @@ allowed_origins = [
   "https://www.example.com"
 ]
 
-# Keep this narrow; exact key list is preferred for high-sensitivity files.
-allowed_object_keys = [
-  "docs/sample-file.pdf"
-]
+# Keep this scoped to files intentionally exposed through the presigned-url API.
+allowed_object_keys = []
 
 allowed_object_prefixes = [
-  "resume/"
+  "private-downloads/"
 ]
 
 # Optional custom domain wiring

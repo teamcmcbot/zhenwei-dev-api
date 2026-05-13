@@ -304,8 +304,6 @@ resource "aws_apigatewayv2_domain_name" "this" {
 resource "aws_acm_certificate" "api_domain" {
   count = var.enable_custom_domain && var.create_api_domain_certificate ? 1 : 0
 
-  provider = aws.us_east_1
-
   domain_name       = var.api_domain_name
   validation_method = "DNS"
 
@@ -336,8 +334,6 @@ resource "aws_route53_record" "acm_validation" {
 // Waits for ACM validation to complete before using the certificate.
 resource "aws_acm_certificate_validation" "api_domain" {
   count = var.enable_custom_domain && var.create_api_domain_certificate ? 1 : 0
-
-  provider = aws.us_east_1
 
   certificate_arn         = aws_acm_certificate.api_domain[0].arn
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]

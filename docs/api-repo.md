@@ -76,7 +76,7 @@ Purpose:
 Input (example JSON):
 ```json
 {
-  "objectKey": "resume/zhenwei-seo-cv.pdf",
+  "objectKey": "private-downloads/resume/zhenwei-seo-cv.pdf",
   "versionId": "3HL4kqtJlcpXroDTDmJ+rmSpXd3dIbrH",
   "expiresInSeconds": 300,
   "contentDispositionFileName": "zhenwei-seo-cv.pdf"
@@ -87,9 +87,9 @@ Response (success):
 ```json
 {
   "url": "https://...",
-  "objectKey": "resume/zhenwei-seo-cv.pdf",
+  "objectKey": "private-downloads/resume/zhenwei-seo-cv.pdf",
   "versionId": "3HL4kqtJlcpXroDTDmJ+rmSpXd3dIbrH",
-  "expiresInSeconds": 300,
+  "expiresIn": 300,
   "fileName": "zhenwei-seo-cv.pdf"
 }
 ```
