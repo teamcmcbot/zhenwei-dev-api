@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -20,10 +21,21 @@ class FakeContext:
 class FakeS3Client:
     def __init__(self):
         self.calls = []
+        self.head_calls = []
 
     def generate_presigned_url(self, **kwargs):
         self.calls.append(kwargs)
         return "https://signed.example.test/object"
+
+    def head_object(self, **kwargs):
+        self.head_calls.append(kwargs)
+        return {
+            "VersionId": "meta-version-123",
+            "ETag": '"abc123etag"',
+            "LastModified": datetime(2026, 5, 16, 10, 30, 0, tzinfo=timezone.utc),
+            "ContentLength": 2048,
+            "ContentType": "application/pdf",
+        }
 
 
 class HandlerTests(unittest.TestCase):
@@ -75,8 +87,20 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(payload["url"], "https://signed.example.test/object")
         self.assertEqual(payload["bucketName"], "private-bucket")
         self.assertEqual(payload["objectKey"], "exact/zhenwei-seo-cv.pdf")
+        self.assertEqual(payload["versionId"], "meta-version-123")
         self.assertEqual(payload["fileName"], "zhenwei-seo-cv.pdf")
         self.assertEqual(payload["expiresIn"], 600)
+        self.assertEqual(payload["eTag"], "abc123etag")
+        self.assertEqual(payload["lastModified"], "2026-05-16T10:30:00+00:00")
+        self.assertEqual(payload["contentLength"], 2048)
+        self.assertEqual(payload["contentType"], "application/pdf")
+        self.assertEqual(
+            self.fake_s3.head_calls[0],
+            {
+                "Bucket": "private-bucket",
+                "Key": "exact/zhenwei-seo-cv.pdf",
+            },
+        )
         self.assertEqual(self.fake_s3.calls[0]["ExpiresIn"], 600)
         self.assertEqual(
             self.fake_s3.calls[0]["Params"],
@@ -96,6 +120,7 @@ class HandlerTests(unittest.TestCase):
         payload = json.loads(response["body"])
         self.assertEqual(response["statusCode"], 200)
         self.assertEqual(payload["expiresIn"], 900)
+        self.assertEqual(payload["versionId"], "meta-version-123")
         self.assertEqual(self.fake_s3.calls[0]["ExpiresIn"], 900)
 
     def test_allows_configured_prefix(self):
@@ -105,6 +130,7 @@ class HandlerTests(unittest.TestCase):
         )
 
         self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(self.fake_s3.head_calls[0]["Key"], "private-downloads/example.pdf")
         self.assertEqual(self.fake_s3.calls[0]["Params"]["Key"], "private-downloads/example.pdf")
 
     def test_rejects_unapproved_key(self):
@@ -138,6 +164,23 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(response["statusCode"], 403)
         self.assertNotIn("Access-Control-Allow-Origin", response["headers"])
         self.assertEqual(self.fake_s3.calls, [])
+
+    def test_returns_404_when_object_missing(self):
+        class MissingObjectError(Exception):
+            def __init__(self):
+                super().__init__("NotFound")
+                self.response = {"Error": {"Code": "NotFound"}}
+
+        self.fake_s3.head_object = lambda **kwargs: (_ for _ in ()).throw(MissingObjectError())
+
+        response = handler.lambda_handler(
+            self.event({"objectKey": "private-downloads/resume/missing.pdf"}),
+            FakeContext(),
+        )
+
+        payload = json.loads(response["body"])
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(payload["error"]["code"], "not_found")
 
     def test_handles_cors_preflight(self):
         response = handler.lambda_handler(self.event(None, method="OPTIONS"), FakeContext())

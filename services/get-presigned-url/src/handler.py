@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import re
+from datetime import datetime
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -48,6 +49,13 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         if request.get("version_id"):
             signing_params["VersionId"] = request["version_id"]
 
+        object_metadata = get_object_metadata(
+            get_s3_client(),
+            config["bucket_name"],
+            request["object_key"],
+            request.get("version_id"),
+        )
+
         url = get_s3_client().generate_presigned_url(
             ClientMethod="get_object",
             Params=signing_params,
@@ -68,9 +76,13 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "url": url,
             "bucketName": config["bucket_name"],
             "objectKey": request["object_key"],
-            "versionId": request.get("version_id"),
+            "versionId": object_metadata.get("versionId") or request.get("version_id"),
             "fileName": request["file_name"],
             "expiresIn": request["expires_in_seconds"],
+            "eTag": object_metadata.get("eTag"),
+            "lastModified": object_metadata.get("lastModified"),
+            "contentLength": object_metadata.get("contentLength"),
+            "contentType": object_metadata.get("contentType"),
         }
         return response(200, payload, origin, allowed_origins)
     except RequestError as exc:
@@ -94,6 +106,50 @@ def get_s3_client() -> Any:
 
         S3_CLIENT = boto3.client("s3")
     return S3_CLIENT
+
+
+def get_object_metadata(s3_client: Any, bucket_name: str, object_key: str, version_id: str | None) -> dict[str, Any]:
+    head_params: dict[str, Any] = {"Bucket": bucket_name, "Key": object_key}
+    if version_id:
+        head_params["VersionId"] = version_id
+
+    try:
+        head = s3_client.head_object(**head_params)
+    except Exception as exc:
+        error_code = get_aws_error_code(exc)
+        if error_code in {"404", "NoSuchKey", "NotFound", "NoSuchVersion"}:
+            raise RequestError(404, "not_found", "The requested file does not exist.") from exc
+        raise
+
+    return {
+        "versionId": head.get("VersionId"),
+        "eTag": normalize_etag(head.get("ETag")),
+        "lastModified": to_iso8601(head.get("LastModified")),
+        "contentLength": head.get("ContentLength"),
+        "contentType": head.get("ContentType"),
+    }
+
+
+def get_aws_error_code(exc: Exception) -> str:
+    response = getattr(exc, "response", None)
+    if not isinstance(response, dict):
+        return ""
+    error = response.get("Error")
+    if not isinstance(error, dict):
+        return ""
+    return str(error.get("Code", ""))
+
+
+def normalize_etag(value: Any) -> str | None:
+    if not isinstance(value, str) or not value:
+        return None
+    return value.strip('"')
+
+
+def to_iso8601(value: Any) -> str | None:
+    if not isinstance(value, datetime):
+        return None
+    return value.isoformat()
 
 
 def load_config() -> dict[str, Any]:

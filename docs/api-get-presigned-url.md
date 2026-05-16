@@ -73,11 +73,15 @@ Successful response:
   "objectKey": "private-downloads/resume/zhenwei-seo-cv.pdf",
   "versionId": "3HL4kqtJlcpXroDTDmJ+rmSpXd3dIbrH",
   "fileName": "zhenwei-seo-cv.pdf",
-  "expiresIn": 300
+  "expiresIn": 300,
+  "eTag": "abc123etag",
+  "lastModified": "2026-05-16T10:30:00+00:00",
+  "contentLength": 2048,
+  "contentType": "application/pdf"
 }
 ```
 
-If the caller omits `versionId`, the response should either omit `versionId` or return `null`, depending on the final response schema. The generated URL should point to the latest version.
+If the caller omits `versionId`, the service signs the latest object version and returns metadata for that object. If S3 versioning is enabled and available, `versionId` is populated from S3 metadata.
 
 Error response:
 
@@ -106,9 +110,9 @@ Handler steps:
 5. Resolve the approved bucket from environment configuration.
 6. Check `objectKey` against exact-key and prefix allow-lists.
 7. Set expiry to the requested value capped by the configured maximum.
-8. Build S3 signing parameters with `Bucket`, `Key`, optional `VersionId`, and optional `ResponseContentDisposition`.
-9. Generate the presigned URL with `boto3.client("s3").generate_presigned_url`.
-10. Return `200` JSON with `url`, `bucketName`, `objectKey`, optional `versionId`, `fileName`, and `expiresIn`.
+8. Build S3 parameters with `Bucket`, `Key`, optional `VersionId`, and call `HeadObject` to resolve object metadata.
+9. Build signing parameters with optional `ResponseContentDisposition` and generate the presigned URL with `boto3.client("s3").generate_presigned_url`.
+10. Return `200` JSON with `url`, `bucketName`, `objectKey`, `versionId`, `fileName`, `expiresIn`, `eTag`, `lastModified`, `contentLength`, and `contentType`.
 11. Log a structured success event without logging the full presigned URL.
 
 Suggested environment variables:
