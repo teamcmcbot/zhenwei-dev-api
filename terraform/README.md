@@ -12,6 +12,8 @@ The Terraform layout is split into three stacks so shared resources and environm
 
 The current shared module provisions the common artifact bucket and, optionally, a GitHub OIDC deploy role. The dev and prod stacks consume shared outputs through remote state and create their own environment-specific resources, including the SSM parameter that points to the packaged Lambda artifact.
 
+API Gateway REST account logging settings are also owned by `envs/shared` (`aws_api_gateway_account` + CloudWatch role) because they are account-level singletons per region.
+
 ## Region Rules
 
 - All stacks run in `ap-southeast-1`.
@@ -38,6 +40,7 @@ Creates shared infrastructure used by all environments:
 
 - Lambda artifact bucket
 - Optional GitHub deploy role
+- API Gateway account-level CloudWatch logging role/configuration
 - Shared outputs consumed by dev/prod via remote state
 
 ### `envs/dev`
@@ -95,6 +98,31 @@ Run the stacks in this order:
 3. `prod`
 
 The reason for this order is that dev and prod read shared outputs from remote state. If shared does not exist first, the environment stacks cannot resolve the artifact bucket output.
+
+## Migration Note: API Gateway Account Ownership
+
+If you previously managed `aws_api_gateway_account` from `envs/dev` and/or `envs/prod`, migrate state ownership before applying environment stacks to avoid singleton flip-flop:
+
+```bash
+# 1) Apply shared first so shared owns the API Gateway account singleton.
+terraform -chdir=terraform/envs/shared apply
+
+# 2) Remove old singleton ownership from env states without touching real infra.
+terraform -chdir=terraform/envs/dev state rm module.send_notification.aws_api_gateway_account.this
+terraform -chdir=terraform/envs/prod state rm module.send_notification.aws_api_gateway_account.this
+
+# 3) Remove legacy env-specific API Gateway CloudWatch roles from env states.
+terraform -chdir=terraform/envs/dev state rm module.send_notification.aws_iam_role_policy_attachment.apigw_cloudwatch
+terraform -chdir=terraform/envs/dev state rm module.send_notification.aws_iam_role.apigw_cloudwatch
+terraform -chdir=terraform/envs/prod state rm module.send_notification.aws_iam_role_policy_attachment.apigw_cloudwatch
+terraform -chdir=terraform/envs/prod state rm module.send_notification.aws_iam_role.apigw_cloudwatch
+
+# 4) Plan/apply dev and prod normally.
+terraform -chdir=terraform/envs/dev plan
+terraform -chdir=terraform/envs/prod plan
+```
+
+After migration, apply in dev should no longer create drift in prod (and vice versa).
 
 ## Recommended Workflow
 

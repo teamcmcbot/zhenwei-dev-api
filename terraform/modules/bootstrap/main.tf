@@ -9,6 +9,7 @@ data "aws_iam_openid_connect_provider" "github_actions" {
 
 locals {
   artifact_parameter_name = "/${var.project_name}/${var.environment}/get-presigned-url/artifact"
+  send_notification_artifact_parameter_name = "/${var.project_name}/${var.environment}/send-notification/artifact"
   github_deploy_artifact_parameter_arns = [
     for environment in var.github_deploy_environments :
     "arn:${data.aws_partition.current.partition}:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/${environment}/get-presigned-url/artifact"
@@ -77,6 +78,28 @@ resource "aws_ssm_parameter" "get_presigned_url_artifact" {
   name = local.artifact_parameter_name
   type = "String"
   # Builds the GitHub OIDC trust policy when a dedicated deploy role is enabled.
+
+  value = jsonencode({
+    bucket           = local.artifact_bucket_name
+    key              = "placeholder"
+    source_code_hash = "placeholder"
+    build_id         = "placeholder"
+    commit_sha       = "placeholder"
+    created_at       = "placeholder"
+  })
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+
+  tags = var.tags
+}
+
+resource "aws_ssm_parameter" "send_notification_artifact" {
+  count = var.create_artifact_parameter ? 1 : 0
+
+  name = local.send_notification_artifact_parameter_name
+  type = "String"
 
   value = jsonencode({
     bucket           = local.artifact_bucket_name

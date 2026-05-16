@@ -91,6 +91,12 @@ variable "log_retention_days" {
   default     = 30
 }
 
+variable "send_notification_stage_name" {
+  type        = string
+  description = "Stage name for the send-notification REST API."
+  default     = "prod"
+}
+
 variable "throttle_burst_limit" {
   type        = number
   description = "API Gateway burst limit."
@@ -107,6 +113,66 @@ variable "alarm_sns_topic_arn" {
   type        = string
   description = "Optional SNS topic ARN for alarms."
   default     = ""
+}
+
+variable "allowed_notification_sources" {
+  type        = list(string)
+  description = "Allowed source values for send-notification requests."
+  default     = ["github-actions", "terraform", "cloudfront"]
+}
+
+variable "allowed_notification_event_types" {
+  type        = list(string)
+  description = "Allowed eventType values for send-notification requests."
+  default     = ["workflow.completed", "apply.success", "apply.failed", "invalidation.complete"]
+}
+
+variable "pushover_token_parameter_name" {
+  type        = string
+  description = "SSM parameter name for the default Pushover application token."
+  default     = "PushoverToken"
+}
+
+variable "pushover_user_parameter_name" {
+  type        = string
+  description = "SSM parameter name for the Pushover user key."
+  default     = "PushoverUser"
+}
+
+variable "automation_rate_limit" {
+  type        = number
+  description = "Automation usage plan steady-state requests per second."
+  default     = 1
+}
+
+variable "automation_burst_limit" {
+  type        = number
+  description = "Automation usage plan burst limit."
+  default     = 1
+}
+
+variable "automation_monthly_quota" {
+  type        = number
+  description = "Automation usage plan monthly quota."
+  default     = 400
+}
+
+variable "website_rate_limit" {
+  type        = number
+  description = "Website usage plan steady-state requests per second."
+  default     = 1
+}
+
+variable "website_burst_limit" {
+  type        = number
+  description = "Website usage plan burst limit."
+  default     = 1
+}
+
+variable "website_monthly_quota" {
+  type        = number
+  description = "Website usage plan monthly quota."
+  default     = 100
 }
 
 variable "enable_custom_domain" {

@@ -70,3 +70,36 @@ module "get_presigned_url" {
   api_domain_certificate_arn    = var.api_domain_certificate_arn
   tags                          = local.default_tags
 }
+
+module "send_notification" {
+  source = "../../modules/send_notification"
+
+  providers = {
+    aws = aws
+  }
+
+  project_name                  = var.project_name
+  environment                   = var.environment
+  aws_region                    = var.aws_region
+  artifact_parameter_name       = module.bootstrap.send_notification_artifact_parameter_name
+  lambda_runtime                = var.lambda_runtime
+  lambda_memory_size            = var.lambda_memory_size
+  lambda_timeout_seconds        = var.lambda_timeout_seconds
+  log_retention_days            = var.log_retention_days
+  stage_name                    = var.send_notification_stage_name
+  allowed_sources               = var.allowed_notification_sources
+  allowed_event_types           = var.allowed_notification_event_types
+  pushover_token_parameter_name = var.pushover_token_parameter_name
+  pushover_user_parameter_name  = var.pushover_user_parameter_name
+  automation_rate_limit         = var.automation_rate_limit
+  automation_burst_limit        = var.automation_burst_limit
+  automation_monthly_quota      = var.automation_monthly_quota
+  website_rate_limit            = var.website_rate_limit
+  website_burst_limit           = var.website_burst_limit
+  website_monthly_quota         = var.website_monthly_quota
+  alarm_sns_topic_arn           = var.alarm_sns_topic_arn
+  enable_custom_domain          = var.enable_custom_domain
+  api_domain_name               = var.api_domain_name
+  custom_domain_base_path       = "send-notification"
+  tags                          = local.default_tags
+}
