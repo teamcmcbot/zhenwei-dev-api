@@ -34,6 +34,11 @@ output "automation_api_key_value" {
   sensitive   = true
 }
 
+output "automation_api_key_parameter_name" {
+  value       = aws_ssm_parameter.automation_api_key.name
+  description = "SSM parameter storing automation API key value."
+}
+
 output "website_api_key_id" {
   value       = aws_api_gateway_api_key.website.id
   description = "Website API key ID."
@@ -43,4 +48,9 @@ output "website_api_key_value" {
   value       = aws_api_gateway_api_key.website.value
   description = "Website API key value."
   sensitive   = true
+}
+
+output "website_api_key_parameter_name" {
+  value       = aws_ssm_parameter.website_api_key.name
+  description = "SSM parameter storing website API key value."
 }

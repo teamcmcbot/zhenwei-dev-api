@@ -76,6 +76,18 @@ variable "pushover_user_parameter_name" {
   default     = "PushoverUser"
 }
 
+variable "automation_api_key_parameter_name" {
+  type        = string
+  description = "Optional SSM parameter name override for automation API key storage."
+  default     = ""
+}
+
+variable "website_api_key_parameter_name" {
+  type        = string
+  description = "Optional SSM parameter name override for website API key storage."
+  default     = ""
+}
+
 variable "log_retention_days" {
   type        = number
   description = "CloudWatch log retention days."

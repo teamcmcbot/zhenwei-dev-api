@@ -5,6 +5,7 @@ Lambda service for sending push notifications via Pushover.
 ## Overview
 
 `send-notification` is the default notification channel for automation events:
+
 - GitHub workflow completion notifications
 - Terraform apply completion alerts
 - CloudFront invalidation completion alerts
@@ -35,6 +36,7 @@ python -c "from src.handler import lambda_handler; print(lambda_handler({'body':
 ### Deployment
 
 The Lambda function is built and packaged by `scripts/package_lambda.sh send-notification`, which:
+
 1. Creates `build/send-notification/package/` directory
 2. Copies handler and dependencies
 3. Zips for AWS Lambda upload
@@ -65,32 +67,32 @@ For repeat deployments after the parameter exists, publish the new artifact and 
 
 ### Mandatory fields
 
-| Field | Type | Example |
-|-------|------|---------|
-| `source` | string | `"github-actions"` |
-| `eventType` | string | `"workflow.completed"` |
-| `message` | string | `"Deployment succeeded"` |
+| Field       | Type   | Example                  |
+| ----------- | ------ | ------------------------ |
+| `source`    | string | `"github-actions"`       |
+| `eventType` | string | `"workflow.completed"`   |
+| `message`   | string | `"Deployment succeeded"` |
 
 ### Optional fields
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `title` | string | Auto-generated from `eventType` if omitted |
-| `priority` | integer | `-2, -1, 0, 1, 2` (default: 0) |
-| `sound` | string | Pushover sound name |
-| `device` | string | Restrict to specific device |
-| `url` | string | Context link (max 512 chars) |
-| `urlTitle` | string | Label for `url` (max 100 chars) |
-| `ttl` | integer | Pushover TTL |
-| `timestamp` | integer | Unix timestamp |
-| `html` | boolean | Enable HTML formatting |
-| `monospace` | boolean | Enable monospace font (incompatible with html) |
-| `metadata` | object | Structured logging context (no secrets) |
-| `dedupeKey` | string | Idempotency key for retry-safe calls |
-| `retry` | integer | Emergency only (priority=2) |
-| `expire` | integer | Emergency only (priority=2) |
-| `callback` | string | Emergency callback URL |
-| `applicationToken` | string | Override SSM `PushoverToken` (max 100 chars) |
+| Field              | Type    | Notes                                          |
+| ------------------ | ------- | ---------------------------------------------- |
+| `title`            | string  | Auto-generated from `eventType` if omitted     |
+| `priority`         | integer | `-2, -1, 0, 1, 2` (default: 0)                 |
+| `sound`            | string  | Pushover sound name                            |
+| `device`           | string  | Restrict to specific device                    |
+| `url`              | string  | Context link (max 512 chars)                   |
+| `urlTitle`         | string  | Label for `url` (max 100 chars)                |
+| `ttl`              | integer | Pushover TTL                                   |
+| `timestamp`        | integer | Unix timestamp                                 |
+| `html`             | boolean | Enable HTML formatting                         |
+| `monospace`        | boolean | Enable monospace font (incompatible with html) |
+| `metadata`         | object  | Structured logging context (no secrets)        |
+| `dedupeKey`        | string  | Idempotency key for retry-safe calls           |
+| `retry`            | integer | Emergency only (priority=2)                    |
+| `expire`           | integer | Emergency only (priority=2)                    |
+| `callback`         | string  | Emergency callback URL                         |
+| `applicationToken` | string  | Override SSM `PushoverToken` (max 100 chars)   |
 
 ## Request Example
 
@@ -160,17 +162,118 @@ For repeat deployments after the parameter exists, publish the new artifact and 
 ## SSM Parameters
 
 The Lambda function reads these SSM parameters at runtime:
+
 - `PushoverToken`: Pushover app token (cached for 60 seconds)
 - `PushoverUser`: Pushover user ID (cached for 60 seconds)
 
+Terraform also stores API Gateway key values for external callers as SecureString parameters:
+
+- `/${project_name}/${environment}/send-notification/api-key/automation`
+- `/${project_name}/${environment}/send-notification/api-key/website`
+
+For this repository defaults, those are:
+
+- `/zhenwei-dev-api/dev/send-notification/api-key/automation`
+- `/zhenwei-dev-api/prod/send-notification/api-key/automation`
+
 Cache is refreshed on:
+
 - Cold start
 - TTL expiry
 - Auth failure from Pushover
 
+## Cross-Repo GitHub Workflow Usage
+
+Use this pattern when another repository needs to call this endpoint.
+
+### Prerequisites
+
+1. The caller repository must run in the same AWS account (or in a trusted account with cross-account role access) as this API stack.
+2. In the caller repository GitHub Environment secrets, create `send-notification-ssm-param` with value:
+   - Prod example: `/zhenwei-dev-api/prod/send-notification/api-key/automation`
+   - Dev example: `/zhenwei-dev-api/dev/send-notification/api-key/automation`
+3. The caller workflow role must have IAM permission to read that SSM parameter (`ssm:GetParameter`).
+
+### Minimum IAM policy for caller workflow role
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["ssm:GetParameter"],
+      "Resource": [
+        "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/zhenwei-dev-api/prod/send-notification/api-key/automation",
+        "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/zhenwei-dev-api/dev/send-notification/api-key/automation"
+      ]
+    }
+  ]
+}
+```
+
+### Example workflow snippet (caller repository)
+
+```yaml
+name: Notify Phone
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["deploy-prod"]
+    types: [completed]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::<account-id>:role/<caller-repo-role-name>
+          aws-region: ap-southeast-1
+
+      - name: Resolve send-notification API key from SSM
+        id: ssm
+        env:
+          SSM_PARAM_NAME: ${{ secrets.send-notification-ssm-param }}
+        run: |
+          API_KEY="$(aws ssm get-parameter \
+            --name "$SSM_PARAM_NAME" \
+            --with-decryption \
+            --query 'Parameter.Value' \
+            --output text)"
+          echo "api_key=$API_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Send push notification
+        env:
+          SEND_NOTIFICATION_ENDPOINT: https://api.zhenwei.dev/send-notification
+          API_KEY: ${{ steps.ssm.outputs.api_key }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+          RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          curl -sS -X POST "$SEND_NOTIFICATION_ENDPOINT" \
+            -H "x-api-key: $API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"source\":\"github-actions\",\"eventType\":\"workflow.completed\",\"message\":\"$WORKFLOW_NAME completed\",\"url\":\"https://github.com/$REPO/actions/runs/$RUN_ID\",\"urlTitle\":\"View workflow run\",\"metadata\":{\"repo\":\"$REPO\",\"runId\":\"$RUN_ID\"}}"
+```
+
+Notes:
+
+- Do not store API key values in GitHub secrets; store only the parameter name and retrieve at runtime.
+- Avoid printing the API key in logs.
+- Keep the IAM scope to exact parameter ARNs.
+
 ## Security
 
 **Mandatory controls**:
+
 - API key required by API Gateway method
 - Very low usage plan quotas (1 req/sec, 400/month for automation, 100/month for website)
 - Strict payload validation with allow-lists
@@ -179,25 +282,28 @@ Cache is refreshed on:
 - `applicationToken` usage logged for audit trail
 
 **Recommended (Phase 2)**:
+
 - Add HMAC request signature validation in Lambda
 
 ## Errors
 
-| Code | Status | Meaning |
-|------|--------|---------|
-| `validation_error` | 400 | Invalid payload (e.g., missing required field, invalid length) |
-| `auth_error` | 401 | Pushover authentication failed (invalid token/user) |
-| `provider_error` | 502 | Pushover service error (after retries) |
-| `internal_error` | 500 | Unexpected Lambda error |
+| Code               | Status | Meaning                                                        |
+| ------------------ | ------ | -------------------------------------------------------------- |
+| `validation_error` | 400    | Invalid payload (e.g., missing required field, invalid length) |
+| `auth_error`       | 401    | Pushover authentication failed (invalid token/user)            |
+| `provider_error`   | 502    | Pushover service error (after retries)                         |
+| `internal_error`   | 500    | Unexpected Lambda error                                        |
 
 ## Rate Limiting & Quotas
 
 ### Automation Plan (GitHub Actions)
+
 - Throttle: 1 request/second
 - Burst: 1
 - Monthly quota: 400 requests
 
 ### Website Plan (zhenwei.dev)
+
 - Throttle: 1 request/second
 - Burst: 1
 - Monthly quota: 100 requests
@@ -237,6 +343,7 @@ python -m pytest tests/test_handler.py -v
 ```
 
 Test coverage:
+
 - Valid requests (all field combinations)
 - Missing mandatory fields
 - Invalid field lengths
@@ -254,7 +361,8 @@ Dev:
 
 ```bash
 API_ENDPOINT="$(terraform -chdir=terraform/envs/dev output -raw send_notification_api_endpoint)"
-AUTOMATION_API_KEY="$(terraform -chdir=terraform/envs/dev output -raw send_notification_automation_api_key_value)"
+AUTOMATION_API_KEY_PARAM="$(terraform -chdir=terraform/envs/dev output -raw send_notification_automation_api_key_parameter_name)"
+AUTOMATION_API_KEY="$(aws ssm get-parameter --name "${AUTOMATION_API_KEY_PARAM}" --with-decryption --query 'Parameter.Value' --output text)"
 NOW_TS="$(date +%s)"
 
 curl -i -X POST "${API_ENDPOINT%/}/send-notification" \
@@ -270,11 +378,10 @@ curl -i -X POST "${API_ENDPOINT%/}/send-notification" \
     \"device\": \"iphone\",
     \"url\": \"https://github.com/teamcmcbot/zhenwei-dev-api/actions/runs/123456789\",
     \"urlTitle\": \"View workflow run\",
-    \"ttl\": 300,
     \"timestamp\": ${NOW_TS},
     \"html\": false,
     \"monospace\": false,
-    \"applicationToken\": \"[PUSHOVER_APPLICATION_TOKEN]\",
+    \"applicationToken\": \"a8fgxt4sr9xsjiwrsu26rre9kxkuxe\",
     \"metadata\": {
       \"repo\": \"teamcmcbot/zhenwei-dev-api\",
       \"workflow\": \"deploy-dev\",
@@ -289,7 +396,8 @@ Prod:
 
 ```bash
 API_ENDPOINT="$(terraform -chdir=terraform/envs/prod output -raw send_notification_api_endpoint)"
-AUTOMATION_API_KEY="$(terraform -chdir=terraform/envs/prod output -raw send_notification_automation_api_key_value)"
+AUTOMATION_API_KEY_PARAM="$(terraform -chdir=terraform/envs/prod output -raw send_notification_automation_api_key_parameter_name)"
+AUTOMATION_API_KEY="$(aws ssm get-parameter --name "${AUTOMATION_API_KEY_PARAM}" --with-decryption --query 'Parameter.Value' --output text)"
 NOW_TS="$(date +%s)"
 
 curl -i -X POST "${API_ENDPOINT%/}/send-notification" \
@@ -304,10 +412,10 @@ curl -i -X POST "${API_ENDPOINT%/}/send-notification" \
     \"sound\": \"pushover\",
     \"url\": \"https://github.com/teamcmcbot/zhenwei-dev-api/actions/runs/123456789\",
     \"urlTitle\": \"View workflow run\",
-    \"ttl\": 300,
     \"timestamp\": ${NOW_TS},
     \"html\": false,
     \"monospace\": false,
+    \"applicationToken\": \"a8fgxt4sr9xsjiwrsu26rre9kxkuxe\",
     \"metadata\": {
       \"repo\": \"teamcmcbot/zhenwei-dev-api\",
       \"workflow\": \"deploy-prod\",

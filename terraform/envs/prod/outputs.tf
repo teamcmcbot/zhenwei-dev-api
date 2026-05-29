@@ -44,8 +44,18 @@ output "send_notification_automation_api_key_value" {
   sensitive   = true
 }
 
+output "send_notification_automation_api_key_parameter_name" {
+  value       = module.send_notification.automation_api_key_parameter_name
+  description = "SSM parameter storing automation API key value for send-notification."
+}
+
 output "send_notification_website_api_key_value" {
   value       = module.send_notification.website_api_key_value
   description = "Website API key value for send-notification."
   sensitive   = true
+}
+
+output "send_notification_website_api_key_parameter_name" {
+  value       = module.send_notification.website_api_key_parameter_name
+  description = "SSM parameter storing website API key value for send-notification."
 }

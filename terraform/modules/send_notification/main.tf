@@ -16,9 +16,11 @@ data "aws_ssm_parameter" "pushover_user" {
 }
 
 locals {
-  service_name = "send-notification"
-  lambda_name  = "${var.project_name}-${var.environment}-${local.service_name}"
-  api_name     = var.api_name != "" ? var.api_name : "${var.project_name}-${var.environment}-send-notification-rest-api"
+  service_name                      = "send-notification"
+  lambda_name                       = "${var.project_name}-${var.environment}-${local.service_name}"
+  api_name                          = var.api_name != "" ? var.api_name : "${var.project_name}-${var.environment}-send-notification-rest-api"
+  automation_api_key_parameter_name = var.automation_api_key_parameter_name != "" ? var.automation_api_key_parameter_name : "/${var.project_name}/${var.environment}/send-notification/api-key/automation"
+  website_api_key_parameter_name    = var.website_api_key_parameter_name != "" ? var.website_api_key_parameter_name : "/${var.project_name}/${var.environment}/send-notification/api-key/website"
 
   artifact      = jsondecode(data.aws_ssm_parameter.artifact.value)
   alarm_actions = var.alarm_sns_topic_arn == "" ? [] : [var.alarm_sns_topic_arn]
@@ -235,6 +237,30 @@ resource "aws_api_gateway_api_key" "website" {
 
   tags = merge(var.tags, {
     CallerGroup = "website"
+  })
+}
+
+resource "aws_ssm_parameter" "automation_api_key" {
+  name      = local.automation_api_key_parameter_name
+  type      = "SecureString"
+  value     = aws_api_gateway_api_key.automation.value
+  overwrite = true
+
+  tags = merge(var.tags, {
+    CallerGroup = "automation"
+    Purpose     = "send-notification-api-key"
+  })
+}
+
+resource "aws_ssm_parameter" "website_api_key" {
+  name      = local.website_api_key_parameter_name
+  type      = "SecureString"
+  value     = aws_api_gateway_api_key.website.value
+  overwrite = true
+
+  tags = merge(var.tags, {
+    CallerGroup = "website"
+    Purpose     = "send-notification-api-key"
   })
 }
 
