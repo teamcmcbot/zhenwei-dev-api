@@ -106,6 +106,12 @@ variable "throttle_rate_limit" {
   default     = 10
 }
 
+variable "enable_cloudwatch_alarms" {
+  type        = bool
+  description = "Create CloudWatch metric alarms for this service."
+  default     = true
+}
+
 variable "alarm_sns_topic_arn" {
   type        = string
   description = "Optional SNS topic for CloudWatch alarm actions."

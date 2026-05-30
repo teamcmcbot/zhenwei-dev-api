@@ -21,4 +21,5 @@ state_bucket_name   = "example-terraform-tfstate"
 state_bucket_region = "ap-southeast-1"
 shared_state_key    = "example-api/shared/terraform.tfstate"
 
+enable_cloudwatch_alarms = true
 alarm_sns_topic_arn = ""

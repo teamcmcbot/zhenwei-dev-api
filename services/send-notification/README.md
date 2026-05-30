@@ -193,8 +193,11 @@ Use this pattern when another repository needs to call this endpoint.
    - Prod example: `/zhenwei-dev-api/prod/send-notification/api-key/automation`
    - Dev example: `/zhenwei-dev-api/dev/send-notification/api-key/automation`
 3. The caller workflow role must have IAM permission to read that SSM parameter (`ssm:GetParameter`).
+4. If the parameter is encrypted with a customer-managed KMS key, include `kms:Decrypt` for that key.
 
 ### Minimum IAM policy for caller workflow role
+
+Use this as a baseline for `SecureString` parameters.
 
 ```json
 {
@@ -207,10 +210,17 @@ Use this pattern when another repository needs to call this endpoint.
         "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/zhenwei-dev-api/prod/send-notification/api-key/automation",
         "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/zhenwei-dev-api/dev/send-notification/api-key/automation"
       ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["kms:Decrypt"],
+      "Resource": "arn:aws:kms:ap-southeast-1:<account-id>:key/<kms-key-id>"
     }
   ]
 }
 ```
+
+If you use the AWS managed SSM KMS key (`alias/aws/ssm`) in the same account, `ssm:GetParameter` is typically sufficient and the explicit `kms:Decrypt` statement may not be required.
 
 ### Example workflow snippet (caller repository)
 

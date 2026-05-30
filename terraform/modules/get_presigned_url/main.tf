@@ -200,6 +200,8 @@ resource "aws_lambda_permission" "allow_api_gateway" {
 
 // Alerts when the Lambda function records errors.
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
+  count = var.enable_cloudwatch_alarms ? 1 : 0
+
   alarm_name          = "${local.lambda_name}-errors"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -221,6 +223,8 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 
 // Alerts when the API returns elevated 4xx responses.
 resource "aws_cloudwatch_metric_alarm" "api_4xx" {
+  count = var.enable_cloudwatch_alarms ? 1 : 0
+
   alarm_name          = "${local.api_name}-4xx"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -243,6 +247,8 @@ resource "aws_cloudwatch_metric_alarm" "api_4xx" {
 
 // Alerts when the API returns elevated 5xx responses.
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
+  count = var.enable_cloudwatch_alarms ? 1 : 0
+
   alarm_name          = "${local.api_name}-5xx"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -265,6 +271,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
 
 // Alerts when the API exceeds throttling limits.
 resource "aws_cloudwatch_metric_alarm" "api_throttled" {
+  count = var.enable_cloudwatch_alarms ? 1 : 0
+
   alarm_name          = "${local.api_name}-throttled-requests"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1

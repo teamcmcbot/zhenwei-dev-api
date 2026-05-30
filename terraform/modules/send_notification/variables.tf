@@ -130,6 +130,12 @@ variable "website_monthly_quota" {
   default     = 100
 }
 
+variable "enable_cloudwatch_alarms" {
+  type        = bool
+  description = "Create CloudWatch metric alarms for this service."
+  default     = true
+}
+
 variable "alarm_sns_topic_arn" {
   type        = string
   description = "Optional SNS topic for CloudWatch alarm actions."

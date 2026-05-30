@@ -325,6 +325,8 @@ resource "aws_api_gateway_usage_plan_key" "website" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
+  count = var.enable_cloudwatch_alarms ? 1 : 0
+
   alarm_name          = "${local.lambda_name}-errors"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -345,6 +347,8 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
+  count = var.enable_cloudwatch_alarms ? 1 : 0
+
   alarm_name          = "${local.lambda_name}-throttles"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -365,6 +369,8 @@ resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "api_4xx" {
+  count = var.enable_cloudwatch_alarms ? 1 : 0
+
   alarm_name          = "${local.api_name}-4xx"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -386,6 +392,8 @@ resource "aws_cloudwatch_metric_alarm" "api_4xx" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
+  count = var.enable_cloudwatch_alarms ? 1 : 0
+
   alarm_name          = "${local.api_name}-5xx"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -407,6 +415,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "api_throttled" {
+  count = var.enable_cloudwatch_alarms ? 1 : 0
+
   alarm_name          = "${local.api_name}-throttled-requests"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1

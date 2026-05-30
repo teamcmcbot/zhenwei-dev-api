@@ -115,6 +115,12 @@ variable "alarm_sns_topic_arn" {
   default     = ""
 }
 
+variable "enable_cloudwatch_alarms" {
+  type        = bool
+  description = "Create CloudWatch metric alarms for service resources."
+  default     = false
+}
+
 variable "allowed_notification_sources" {
   type        = list(string)
   description = "Allowed source values for send-notification requests."

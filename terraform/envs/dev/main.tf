@@ -62,6 +62,7 @@ module "get_presigned_url" {
   log_retention_days            = var.log_retention_days
   throttle_burst_limit          = var.throttle_burst_limit
   throttle_rate_limit           = var.throttle_rate_limit
+  enable_cloudwatch_alarms      = var.enable_cloudwatch_alarms
   alarm_sns_topic_arn           = var.alarm_sns_topic_arn
   enable_custom_domain          = var.enable_custom_domain
   create_api_domain_certificate = var.create_api_domain_certificate
@@ -97,6 +98,7 @@ module "send_notification" {
   website_rate_limit            = var.website_rate_limit
   website_burst_limit           = var.website_burst_limit
   website_monthly_quota         = var.website_monthly_quota
+  enable_cloudwatch_alarms      = var.enable_cloudwatch_alarms
   alarm_sns_topic_arn           = var.alarm_sns_topic_arn
   enable_custom_domain          = var.enable_custom_domain
   api_domain_name               = var.api_domain_name
