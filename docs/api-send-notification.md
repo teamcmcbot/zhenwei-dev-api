@@ -54,8 +54,6 @@ Based on latest Pushover docs (`/websites/pushover_net_api`):
 - Error responses include `status=0` and `errors[]`
 - Message limits: message 1024 chars, title 250, URL 512, URL title 100
 
-
-
 ## Secrets Source (Existing SSM Parameters)
 
 Reuse existing parameters by name:
@@ -82,11 +80,13 @@ Lambda behavior:
 Provision two usage plans for different caller groups:
 
 **Plan 1: Automation (GitHub Actions + future automation pipelines)**
+
 - Throttle rate: `1` request/second
 - Throttle burst: `1`
 - Quota: `400` requests/month
 
 **Plan 2: Website (zhenwei.dev direct calls)**
+
 - Throttle rate: `1` request/second
 - Throttle burst: `1`
 - Quota: `100` requests/month
@@ -104,32 +104,32 @@ API key alone is not strong auth. Add one additional control:
 
 ### Mandatory fields
 
-| Field | Type | Why mandatory |
-| --- | --- | --- |
-| `source` | string | Audit and policy control (who is sending). |
-| `eventType` | string | Routing/alert classification. |
-| `message` | string | Core Pushover content. |
+| Field       | Type   | Why mandatory                              |
+| ----------- | ------ | ------------------------------------------ |
+| `source`    | string | Audit and policy control (who is sending). |
+| `eventType` | string | Routing/alert classification.              |
+| `message`   | string | Core Pushover content.                     |
 
 ### Optional fields
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `title` | string | If omitted, service generates from `eventType`. |
-| `priority` | integer | Allowed `-2,-1,0,1,2`; default `0`. |
-| `sound` | string | Pushover sound name. |
-| `device` | string | Restrict to a specific device. |
-| `url` | string | Context link (for example GitHub run URL). |
-| `urlTitle` | string | Label for `url`. |
-| `ttl` | integer | Optional Pushover TTL. |
-| `timestamp` | integer | Unix timestamp for original event time. |
-| `html` | boolean | Map `true` to `html=1`. |
-| `monospace` | boolean | Map `true` to `monospace=1`; reject if `html=true`. |
-| `metadata` | object | Non-secret logging context. |
-| `dedupeKey` | string | Optional idempotency key for retry-safe calls. |
-| `retry` | integer | Emergency only (`priority=2`). |
-| `expire` | integer | Emergency only (`priority=2`). |
-| `callback` | string | Emergency callback URL if needed later. |
-| `applicationToken` | string | Optional Pushover app token to override SSM `PushoverToken` value. If omitted or empty, defaults to SSM parameter. |
+| Field              | Type    | Notes                                                                                                              |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------ |
+| `title`            | string  | If omitted, service generates from `eventType`.                                                                    |
+| `priority`         | integer | Allowed `-2,-1,0,1,2`; default `0`.                                                                                |
+| `sound`            | string  | Pushover sound name.                                                                                               |
+| `device`           | string  | Restrict to a specific device.                                                                                     |
+| `url`              | string  | Context link (for example GitHub run URL).                                                                         |
+| `urlTitle`         | string  | Label for `url`.                                                                                                   |
+| `ttl`              | integer | Optional Pushover TTL.                                                                                             |
+| `timestamp`        | integer | Unix timestamp for original event time.                                                                            |
+| `html`             | boolean | Map `true` to `html=1`.                                                                                            |
+| `monospace`        | boolean | Map `true` to `monospace=1`; reject if `html=true`.                                                                |
+| `metadata`         | object  | Non-secret logging context.                                                                                        |
+| `dedupeKey`        | string  | Optional idempotency key for retry-safe calls.                                                                     |
+| `retry`            | integer | Emergency only (`priority=2`).                                                                                     |
+| `expire`           | integer | Emergency only (`priority=2`).                                                                                     |
+| `callback`         | string  | Emergency callback URL if needed later.                                                                            |
+| `applicationToken` | string  | Optional Pushover app token to override SSM `PushoverToken` value. If omitted or empty, defaults to SSM parameter. |
 
 ### Validation rules
 
@@ -243,7 +243,7 @@ IAM scope recommendation for SSM read:
 Create `terraform/modules/send_notification` with REST API resources:
 
 - `aws_api_gateway_rest_api`
-- `aws_api_gateway_resource` (`/send-notification`)
+- Root API resource (`/`) + custom-domain base path mapping (`send-notification`)
 - `aws_api_gateway_method` (`POST`, `api_key_required=true`)
 - `aws_api_gateway_integration` (Lambda proxy)
 - `aws_api_gateway_deployment`

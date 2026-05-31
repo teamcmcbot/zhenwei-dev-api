@@ -375,7 +375,7 @@ AUTOMATION_API_KEY_PARAM="$(terraform -chdir=terraform/envs/dev output -raw send
 AUTOMATION_API_KEY="$(aws ssm get-parameter --name "${AUTOMATION_API_KEY_PARAM}" --with-decryption --query 'Parameter.Value' --output text)"
 NOW_TS="$(date +%s)"
 
-curl -i -X POST "${API_ENDPOINT%/}/send-notification" \
+curl -i -X POST "${API_ENDPOINT%/}" \
   -H "x-api-key: ${AUTOMATION_API_KEY}" \
   -H "Content-Type: application/json" \
   -d "{
@@ -410,7 +410,7 @@ AUTOMATION_API_KEY_PARAM="$(terraform -chdir=terraform/envs/prod output -raw sen
 AUTOMATION_API_KEY="$(aws ssm get-parameter --name "${AUTOMATION_API_KEY_PARAM}" --with-decryption --query 'Parameter.Value' --output text)"
 NOW_TS="$(date +%s)"
 
-curl -i -X POST "${API_ENDPOINT%/}/send-notification" \
+curl -i -X POST "${API_ENDPOINT%/}" \
   -H "x-api-key: ${AUTOMATION_API_KEY}" \
   -H "Content-Type: application/json" \
   -d "{
